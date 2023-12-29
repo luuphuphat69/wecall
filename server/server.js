@@ -6,7 +6,21 @@ var bodyParser = require('body-parser');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
 const cookieParser = require('cookie-parser');
+const {Server} = require('socket.io');
+const {createServer} = require('node:http');
+const { join } = require('node:path');
 
+// setup socket.io
+const server = createServer(app);
+const io = new Server(server);
+io.on('connection', (socket) => {
+  console.log('a user connected');
+  socket.on('disconnect', () => {
+    console.log('user disconnected');
+  });
+});
+
+// routers
 const userRouter = require("./router/user_router");
 
 // Load environment variables from .env file
@@ -50,4 +64,8 @@ app.use("/v1/user", userRouter);
 
 app.listen(8000, () => {
    console.log("Server is running");
+});
+
+app.get('/', (req, res) => {
+  res.sendFile(join(__dirname, 'index.html'));
 });
