@@ -8,13 +8,13 @@ const dotenv = require('dotenv');
 const cookieParser = require('cookie-parser');
 const {Server} = require('socket.io');
 const {createServer} = require('node:http');
-const { join } = require('node:path');
+
+const PORT = 8000 || 5000;
 
 // setup socket.io
 const server = createServer(app);
 const io = new Server(server);
 io.on('connection', (socket) => {
-  console.log('a user connected');
   socket.on('disconnect', () => {
     console.log('user disconnected');
   });
@@ -62,10 +62,6 @@ app.use(cookieParser(process.env.SECURE_FLAG));
 // ROUTE
 app.use("/v1/user", userRouter);
 
-app.listen(8000, () => {
+server.listen(PORT, () => {
    console.log("Server is running");
-});
-
-app.get('/', (req, res) => {
-  res.sendFile(join(__dirname, 'index.html'));
 });

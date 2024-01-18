@@ -8,62 +8,78 @@ import React, { useState, useEffect, useRef } from "react";
       RTCDataChannel enables peer-to-peer communication of generic data.
     (There is detailed discussion of the network and signaling aspects of WebRTC later.)
  */
-
 const VideoCall = () => {
-  
-  const [localStream, setLocalStream] = useState(null);
-  const [remoteStream, setRemoteStream] = useState(null);
-  const [peerConnection, setPeerConnection] = useState(null);
+
+  const servers = {
+    iceServers: [
+      {
+        urls: ["stun:stun.l.google.com:19302",
+          "stun:stun1.l.google.com:19302",
+          "stun:stun2.l.google.com:19302",
+          "stun:stun3.l.google.com:19302",
+          "stun:stun4.l.google.com:19302"]
+      },
+    ]
+  };
+
+  let peerConnection = new RTCPeerConnection(servers);
+  const [remoteStream, setRemoteStream] = useState();
+  const [localStream, setLocalStream] = useState();
 
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
 
-  /* camera and micro permission */
-  const init = async () => {
+  const handleMediaStream = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      setLocalStream(stream);
+      let localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      let remoteStream = new MediaStream();
 
-      createOffer();
-      
-    } catch (error) {
-      if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-        console.error('Camera not found on the device.');
-      } else if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-        console.error('Permission to access camera was denied.');
-      } else {
-        console.error('Error accessing media devices:', error);
+      if (localStream && localVideoRef.current) {
+        localVideoRef.current.srcObject = localStream;
       }
+
+      // Push tracks from local stream to peer connection
+      localStream.getTracks().forEach((track) => {
+        peerConnection.addTrack(track, localStream);
+      });
+
+      // Pull track from remote stream, add to video stream
+      peerConnection.ontrack = event =>{
+        event.streams[0].getTracks().forEach(track =>{
+          remoteStream.addTrack(track);
+        });
+      };
+      setRemoteStream(remoteStream);
+      setLocalStream(localStream);
+    } catch (error) {
+      console.error('Error accessing media devices:', error);
     }
   };
+  
 
+  /**
+   * When starting the signaling process, an offer is created by the user initiating the call.
+   * This offer includes a session description, in SDP format, and needs to be delivered to 
+   * the receiving user, which we'll call the callee. 
+   */
   const createOffer = async () => {
-    // Use state to manage peerConnection
-    const newPeerConnection = new RTCPeerConnection();
-    setPeerConnection(newPeerConnection);
-
-    const newRemoteStream = new MediaStream();
-    setRemoteStream(newRemoteStream);
-
-    const offer = await newPeerConnection.createOffer();
-    await newPeerConnection.setLocalDescription(offer);
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
     console.log(offer);
   };
 
-  useEffect(() => {
-    init();
-  }, []); // Run the initialization effect once when the component mounts
+  const answerOffer = async () => {
+  }
 
   useEffect(() => {
-    // Set the srcObject property when localStream changes
-    if (localStream && localVideoRef.current) {
-      localVideoRef.current.srcObject = localStream;
-    }
-  }, [localStream]);
+    handleMediaStream();
+    createOffer();
+  }, []); // Run the initialization effect once when the component mounts
 
   return (
     <div id="videos">
       {localStream ? <video className="video-player" id="user-1" ref={localVideoRef} autoPlay playsInline /> : <video className="video-player" id="user-1" autoPlay playsInline />}
+      {/* {console.log(localVideoRef.current)} */}
       {remoteStream ? <video className="video-player" id="user-2" ref={remoteVideoRef} autoPlay playsInline /> : <video className="video-player" id="user-2" autoPlay playsInline />}
     </div>
   );

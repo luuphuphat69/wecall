@@ -2,7 +2,7 @@ const User = require('../model/user');
 const jwt = require("jsonwebtoken");
 const bcrypt = require('bcrypt');
 
-const user_ctrler = {
+const user_controller = {
     login: async (req, res) => {
         try {
             const { Account, Password } = req.body;
@@ -75,6 +75,14 @@ const user_ctrler = {
         } catch (error) {
             res.status(500).json({ message: error });
         }
+    },
+    getAll: async (req, res) => {
+        try{
+            const users = await User.find();
+            res.json(users);
+        }catch(err){
+            console.log(err);
+        }
     }
 }
 function generateUserId() {
@@ -87,4 +95,4 @@ function generateUserId() {
     return userId;
 }
 
-module.exports = user_ctrler;
+module.exports = user_controller;
