@@ -13,11 +13,7 @@ const VideoCall = () => {
   const servers = {
     iceServers: [
       {
-        urls: ["stun:stun.l.google.com:19302",
-          "stun:stun1.l.google.com:19302",
-          "stun:stun2.l.google.com:19302",
-          "stun:stun3.l.google.com:19302",
-          "stun:stun4.l.google.com:19302"]
+        urls: ['stun:stun1.l.google.com:19302', "stun:stun2.l.google.com:19302"]
       },
     ]
   };
@@ -51,6 +47,8 @@ const VideoCall = () => {
       };
       setRemoteStream(remoteStream);
       setLocalStream(localStream);
+
+      createOffer();
     } catch (error) {
       console.error('Error accessing media devices:', error);
     }
@@ -64,8 +62,15 @@ const VideoCall = () => {
    */
   const createOffer = async () => {
     const offer = await peerConnection.createOffer();
+    console.log("SDP Offer:", offer);
     await peerConnection.setLocalDescription(offer);
-    console.log(offer);
+    
+    //After setLocalDescription(), the caller asks STUN servers to generate the ice candidates
+    peerConnection.onicecandidate = async (event) => {
+      if (event.candidate) {
+        console.log("ICE Candidate: ", event.candidate);
+      }
+    };
   };
 
   const answerOffer = async () => {
@@ -73,7 +78,6 @@ const VideoCall = () => {
 
   useEffect(() => {
     handleMediaStream();
-    createOffer();
   }, []); // Run the initialization effect once when the component mounts
 
   return (
